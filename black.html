@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Black Barber Shop — запись</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alumni+Sans:wght@600;800&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #121212;
+    --surface: #1C1B1A;
+    --line: #34312E;
+    --text: #EFE7DC;
+    --muted: #9A938B;
+    --brass: #C9A15B;
+    --red: #B23A3A;
+    --ink: #121212;
+    --display: "Alumni Sans", "Arial Narrow", "Roboto Condensed", sans-serif;
+    --body: Manrope, system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: var(--bg); }
+  body {
+    color: var(--text);
+    font: 15px/1.5 var(--body);
+    padding: env(safe-area-inset-top, 0px) 20px calc(120px + env(safe-area-inset-bottom, 0px));
+    max-width: 560px;
+    margin: 0 auto;
+    -webkit-tap-highlight-color: transparent;
+    /* Тёплый свет лампы сверху и еле заметные диагональные полосы, как у barber pole */
+    background:
+      radial-gradient(120% 50% at 50% -8%, rgba(201,161,91,.18), transparent 60%),
+      repeating-linear-gradient(-45deg, rgba(239,231,220,.028) 0 2px, transparent 2px 24px),
+      var(--bg);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible {
+    outline: 2px solid var(--brass); outline-offset: 2px;
+  }
+
+  /* ---------- Шапка ---------- */
+  header { padding: 28px 0 18px; }
+  .brand-row { display: flex; align-items: center; gap: 16px; }
+  .pole {
+    flex: none;
+    width: 20px; height: 62px;
+    border-radius: 10px;
+    border: 2px solid var(--brass);
+    background: repeating-linear-gradient(-45deg,
+      var(--red) 0 7px, var(--text) 7px 14px, var(--brass) 14px 21px);
+    box-shadow: inset -5px 0 6px rgba(0,0,0,.4), inset 3px 0 4px rgba(255,255,255,.18);
+    animation: pole 1.6s linear infinite;
+  }
+  @keyframes pole { to { background-position: 0 calc(21px * 1.41421); } }
+  .brand {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 68px;
+    line-height: .85;
+    letter-spacing: .01em;
+  }
+  .brand-sub { color: var(--muted); margin-top: 12px; }
+
+  /* ---------- Плашка контактов ---------- */
+  .contacts {
+    margin-top: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .contacts summary {
+    list-style: none;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .contacts summary::-webkit-details-marker { display: none; }
+  .chev { color: var(--brass); transition: transform .2s; font-size: 20px; line-height: 1; }
+  .contacts[open] .chev { transform: rotate(90deg); }
+  .contact-list { padding: 0 16px 8px; }
+  .contact {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 11px 0;
+    border-top: 1px solid var(--line);
+    color: var(--text); text-decoration: none;
+  }
+  .contact-label { color: var(--muted); }
+  .contact-value { font-weight: 500; color: var(--brass); text-align: right; }
+
+  /* ---------- Секции ---------- */
+  section { padding: 24px 0 4px; }
+  h2 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .reveal { animation: rise .5s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+
+  /* Филиалы */
+  .branches { display: grid; gap: 8px; }
+  .branch {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%;
+    padding: 13px 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    text-align: left;
+    transition: border-color .15s, background .15s;
+  }
+  .radio {
+    flex: none; width: 20px; height: 20px;
+    border: 2px solid var(--line); border-radius: 50%;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .branch-name { display: block; font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1.05; }
+  .branch-addr { display: block; color: var(--muted); font-size: 13px; }
+  .branch[aria-pressed="true"] { border-color: var(--brass); background: rgba(201,161,91,.08); }
+  .branch[aria-pressed="true"] .radio { border-color: var(--brass); box-shadow: inset 0 0 0 4px var(--bg), inset 0 0 0 10px var(--brass); }
+
+  /* Прайс в духе доски с ценами */
+  .svc, .extra {
+    display: block;
+    width: 100%;
+    padding: 11px 0 11px 14px;
+    background: none;
+    border: 0;
+    border-left: 3px solid transparent;
+    text-align: left;
+    transition: border-color .15s;
+  }
+  .row { display: flex; align-items: baseline; gap: 8px; }
+  .name { font-weight: 500; }
+  .dots { flex: 1; border-bottom: 2px dotted var(--line); transform: translateY(-4px); }
+  .price { font-weight: 700; white-space: nowrap; }
+  .note { display: block; color: var(--muted); font-size: 13px; }
+  .svc[aria-pressed="true"], .extra[aria-pressed="true"] { border-left-color: var(--brass); }
+  .svc[aria-pressed="true"] .name, .svc[aria-pressed="true"] .price,
+  .extra[aria-pressed="true"] .name, .extra[aria-pressed="true"] .price { color: var(--brass); }
+
+  .box {
+    flex: none; align-self: center;
+    width: 18px; height: 18px;
+    border: 2px solid var(--line); border-radius: 5px;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; color: var(--ink);
+  }
+  .extra[aria-pressed="true"] .box { background: var(--brass); border-color: var(--brass); }
+
+  .days {
+    display: flex; gap: 8px;
+    overflow-x: auto;
+    margin: 0 -20px; padding: 0 20px 4px;
+    scrollbar-width: none;
+  }
+  .days::-webkit-scrollbar { display: none; }
+  .day {
+    flex: 0 0 58px;
+    padding: 9px 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+    text-align: center;
+    transition: background .15s, color .15s;
+  }
+  .day-wd { display: block; font-size: 12px; color: var(--muted); }
+  .day-num { display: block; font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1; }
+  .day[aria-pressed="true"] { background: var(--brass); border-color: var(--brass); color: var(--ink); }
+  .day[aria-pressed="true"] .day-wd { color: var(--ink); }
+  .day:disabled { opacity: .35; cursor: default; }
+
+  .times { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .time {
+    padding: 11px 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(18,18,18,.6);
+    font-weight: 700;
+    transition: background .15s, color .15s;
+  }
+  .time[aria-pressed="true"] { background: var(--brass); border-color: var(--brass); color: var(--ink); }
+  .time:disabled { opacity: .3; text-decoration: line-through; cursor: default; }
+  .hint { color: var(--muted); }
+
+  /* ---------- Поля ввода ---------- */
+  .field { display: block; margin-bottom: 12px; }
+  .field span { display: block; color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+  .field input {
+    width: 100%;
+    padding: 13px 14px;
+    font-size: 16px;            /* меньше 16px — и iPhone зумит страницу */
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .field input::placeholder { color: #5F5A55; }
+  .field input:focus { border-color: var(--brass); }
+
+  /* ---------- Кнопка записи ---------- */
+  .cta-wrap {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(transparent, var(--bg) 30%);
+  }
+  .cta {
+    display: block; width: 100%; max-width: 520px; margin: 0 auto;
+    padding: 15px; border: 0; border-radius: 14px;
+    background: var(--brass); color: var(--ink); font-weight: 700;
+  }
+  .cta:disabled { background: var(--surface); color: var(--muted); cursor: default; }
+  .toast { text-align: center; color: var(--muted); font-size: 13px; margin-top: 8px; }
+  .toast:empty { display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="reveal">
+  <div class="brand-row">
+    <div class="pole" aria-hidden="true"></div>
+    <div class="brand" id="brand"></div>
+  </div>
+  <p class="brand-sub" id="brandSub"></p>
+
+  <details class="contacts">
+    <summary>Контакты и соцсети <span class="chev" aria-hidden="true">›</span></summary>
+    <div class="contact-list" id="contacts"></div>
+  </details>
+</header>
+
+<section class="reveal" id="branchSection" style="animation-delay:.05s">
+  <h2>Адрес</h2>
+  <div class="branches" id="branches"></div>
+</section>
+
+<section class="reveal" id="levelSection" style="animation-delay:.05s">
+  <h2>Мастер</h2>
+  <div class="branches" id="levels"></div>
+</section>
+
+<section class="reveal" style="animation-delay:.05s">
+  <h2>Услуга</h2>
+  <div id="services"></div>
+</section>
+
+<section class="reveal" id="extrasSection" style="animation-delay:.1s">
+  <h2>Дополнительно</h2>
+  <div id="extras"></div>
+</section>
+
+<section class="reveal" style="animation-delay:.15s">
+  <h2>День</h2>
+  <div class="days" id="days"></div>
+</section>
+
+<section class="reveal" style="animation-delay:.2s">
+  <h2>Время</h2>
+  <div id="times"></div>
+</section>
+
+<section class="reveal" style="animation-delay:.25s">
+  <h2>Твои данные</h2>
+  <label class="field">
+    <span>Имя</span>
+    <input id="name" type="text" maxlength="40" autocomplete="given-name" placeholder="Как тебя зовут">
+  </label>
+  <label class="field">
+    <span>Телефон</span>
+    <input id="phone" type="tel" maxlength="20" inputmode="tel" autocomplete="tel" placeholder="+7 900 000-00-00">
+  </label>
+</section>
+
+<div class="cta-wrap">
+  <button class="cta" id="cta" disabled>Выбери услугу</button>
+  <p class="toast" id="toast"></p>
+</div>
+
+<script>
+// ===================== НАСТРОЙКИ =====================
+// Услуги, допы и часы должны совпадать с barbershop_bot.py
+const SHOP = {
+  name: "BLACK",
+  about: "Barber Shop в Майкопе. Ежедневно с 10:00 до 20:00",
+};
+// Филиалы. id — короткое латинское имя, должно совпадать с ботом.
+// Если филиал один, блок выбора адреса скрывается сам.
+const BRANCHES = [
+  { id: "center",      name: "Центр",      address: "ул. Первомайская, 226" },
+  { id: "cheremushki", name: "Черёмушки",  address: "ул. Пионерская, 347" },
+];
+// Уровни мастеров. id — латиницей, должны совпадать с ботом.
+const LEVELS = [
+  { id: "barber", name: "Барбер",     note: "Опытный мастер" },
+  { id: "top",    name: "Топ-барбер", note: "Мастер высшей категории" },
+];
+// Цена услуги для каждого уровня мастера
+const SERVICES = [
+  { name: "Стрижка + оформление бороды", prices: { barber: 900, top: 1200 }, note: "Полный комплекс за один визит" },
+  { name: "Стрижка детская (до 7 лет)",  prices: { barber: 500, top: 500 },  note: "" },
+  { name: "Стрижка школьникам",          prices: { barber: 600, top: 700 },  note: "" },
+];
+// Если допов нет, оставь пустой список: EXTRAS = [];
+const EXTRAS = [];
+// Пустые строки не показываются
+const CONTACTS = [
+  { label: "Центр",         value: "+7 918 422-26-96", href: "tel:+79184222696" },
+  { label: "Черёмушки",     value: "+7 918 922-78-24", href: "tel:+79189227824" },
+  { label: "Как добраться", value: "Открыть в 2ГИС",   href: "https://2gis.ru/maykop/search/Black%20Barber%20Shop" },
+];
+const WORK_HOURS = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+const DAYS_AHEAD = 7;
+// =====================================================
+
+const WD = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+const tg = window.Telegram && window.Telegram.WebApp;
+
+// Занятые слоты бот передаёт в ссылке: ?busy=center_top_2026-10-30_10:00,...
+const busy = new Set(
+  (new URLSearchParams(location.search).get("busy") || "").split(",").filter(Boolean)
+);
+const state = { branch: BRANCHES[0].id, level: LEVELS[0].id, service: null, extras: new Set(), day: null, time: null, name: "", phone: "" };
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const haptic = () => { try { tg.HapticFeedback.selectionChanged(); } catch (e) {} };
+const phoneOk = () => { const n = state.phone.replace(/\D/g, "").length; return n >= 10 && n <= 15; };
+const price = s => s.prices[state.level];
+const total = () => (state.service === null ? 0 : price(SERVICES[state.service])) +
+  EXTRAS.reduce((sum, x, i) => sum + (state.extras.has(i) ? x.price : 0), 0);
+
+function slotsFor(dayIso) {
+  const now = new Date();
+  const today = iso(now);
+  return WORK_HOURS.map(h => {
+    const t = `${pad(h)}:00`;
+    const past = dayIso === today && h <= now.getHours();
+    return { t, free: !past && !busy.has(`${state.branch}_${state.level}_${dayIso}_${t}`) };
+  });
+}
+
+function days() {
+  const list = [];
+  const base = new Date();
+  for (let i = 0; i < DAYS_AHEAD; i++) {
+    const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+    const dayIso = iso(d);
+    list.push({ d, dayIso, hasFree: slotsFor(dayIso).some(s => s.free) });
+  }
+  return list;
+}
+
+function priceRow(btn, name, price, note, withBox) {
+  btn.innerHTML =
+    `<span class="row">${withBox ? '<span class="box">✓</span>' : ""}` +
+    `<span class="name"></span><span class="dots"></span><span class="price"></span></span>` +
+    (note ? `<span class="note"></span>` : "");
+  btn.querySelector(".name").textContent = name;
+  btn.querySelector(".price").textContent = price;
+  if (note) btn.querySelector(".note").textContent = note;
+}
+
+function renderBranches() {
+  if (BRANCHES.length < 2) { $("branchSection").hidden = true; return; }
+  const box = $("branches");
+  box.innerHTML = "";
+  BRANCHES.forEach(br => {
+    const b = document.createElement("button");
+    b.className = "branch";
+    b.setAttribute("aria-pressed", state.branch === br.id);
+    b.innerHTML = `<span class="radio"></span><span><span class="branch-name"></span><span class="branch-addr"></span></span>`;
+    b.querySelector(".branch-name").textContent = br.name;
+    b.querySelector(".branch-addr").textContent = br.address;
+    b.onclick = () => {
+      if (state.branch === br.id) return;
+      state.branch = br.id;
+      state.time = null;
+      fixDay();
+      haptic(); render();
+    };
+    box.appendChild(b);
+  });
+}
+
+// Если в выбранный день всё занято, прыгаем на ближайший свободный
+function fixDay() {
+  const list = days();
+  const cur = list.find(x => x.dayIso === state.day);
+  if (!cur || !cur.hasFree) {
+    const first = list.find(x => x.hasFree);
+    state.day = first ? first.dayIso : null;
+  }
+}
+
+function renderLevels() {
+  if (LEVELS.length < 2) { $("levelSection").hidden = true; return; }
+  const box = $("levels");
+  box.innerHTML = "";
+  LEVELS.forEach(lv => {
+    const b = document.createElement("button");
+    b.className = "branch";
+    b.setAttribute("aria-pressed", state.level === lv.id);
+    b.innerHTML = `<span class="radio"></span><span><span class="branch-name"></span><span class="branch-addr"></span></span>`;
+    b.querySelector(".branch-name").textContent = lv.name;
+    b.querySelector(".branch-addr").textContent = lv.note;
+    b.onclick = () => {
+      if (state.level === lv.id) return;
+      state.level = lv.id;
+      state.time = null;
+      fixDay();
+      haptic(); render();
+    };
+    box.appendChild(b);
+  });
+}
+
+function renderServices() {
+  const box = $("services");
+  box.innerHTML = "";
+  SERVICES.forEach((s, i) => {
+    const b = document.createElement("button");
+    b.className = "svc";
+    b.setAttribute("aria-pressed", state.service === i);
+    priceRow(b, s.name, `${price(s)} ₽`, s.note, false);
+    b.onclick = () => { state.service = i; haptic(); render(); };
+    box.appendChild(b);
+  });
+}
+
+function renderExtras() {
+  if (!EXTRAS.length) { $("extrasSection").hidden = true; return; }
+  const box = $("extras");
+  box.innerHTML = "";
+  EXTRAS.forEach((x, i) => {
+    const b = document.createElement("button");
+    b.className = "extra";
+    b.setAttribute("aria-pressed", state.extras.has(i));
+    priceRow(b, x.name, `+${x.price} ₽`, "", true);
+    b.onclick = () => {
+      state.extras.has(i) ? state.extras.delete(i) : state.extras.add(i);
+      haptic(); render();
+    };
+    box.appendChild(b);
+  });
+}
+
+function renderDays() {
+  const box = $("days");
+  box.innerHTML = "";
+  days().forEach(({ d, dayIso, hasFree }) => {
+    const b = document.createElement("button");
+    b.className = "day";
+    b.disabled = !hasFree;
+    b.setAttribute("aria-pressed", state.day === dayIso);
+    b.setAttribute("aria-label", d.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" }));
+    b.innerHTML = `<span class="day-wd">${WD[d.getDay()]}</span><span class="day-num">${d.getDate()}</span>`;
+    b.onclick = () => { state.day = dayIso; state.time = null; haptic(); render(); };
+    box.appendChild(b);
+  });
+}
+
+function renderTimes() {
+  const box = $("times");
+  box.innerHTML = "";
+  if (!state.day) {
+    box.innerHTML = `<p class="hint">Свободных окон на неделю нет. Позвони нам, что-нибудь придумаем.</p>`;
+    return;
+  }
+  const grid = document.createElement("div");
+  grid.className = "times";
+  slotsFor(state.day).forEach(({ t, free }) => {
+    const b = document.createElement("button");
+    b.className = "time";
+    b.textContent = t;
+    b.disabled = !free;
+    b.setAttribute("aria-pressed", state.time === t);
+    b.onclick = () => { state.time = t; haptic(); render(); };
+    grid.appendChild(b);
+  });
+  box.appendChild(grid);
+}
+
+function renderContacts() {
+  const box = $("contacts");
+  CONTACTS.filter(c => c.value && c.href).forEach(c => {
+    const a = document.createElement("a");
+    a.className = "contact";
+    a.href = c.href;
+    a.innerHTML = `<span class="contact-label"></span><span class="contact-value"></span>`;
+    a.querySelector(".contact-label").textContent = c.label;
+    a.querySelector(".contact-value").textContent = c.value;
+    a.onclick = e => {
+      if (!tg || !c.href.startsWith("https://")) return;   // телефон открывается сам
+      e.preventDefault();
+      try {
+        c.href.startsWith("https://t.me/") ? tg.openTelegramLink(c.href) : tg.openLink(c.href);
+      } catch (err) { location.href = c.href; }
+    };
+    box.appendChild(a);
+  });
+}
+
+function ctaText() {
+  if (state.service === null) return "Выбери услугу";
+  if (!state.time) return "Выбери время";
+  if (!state.name.trim()) return "Укажи имя";
+  if (!phoneOk()) return "Укажи номер телефона";
+  return `Записаться на ${state.time} за ${total()} ₽`;
+}
+
+function renderCta() {
+  const ready = state.service !== null && state.day && state.time && state.name.trim() && phoneOk();
+  const cta = $("cta");
+  cta.textContent = ctaText();
+  cta.disabled = !ready;
+}
+
+function render() {
+  renderBranches();
+  renderLevels();
+  renderServices();
+  renderExtras();
+  renderDays();
+  renderTimes();
+  renderCta();
+}
+
+function submit() {
+  const data = JSON.stringify({
+    branch: state.branch,
+    level: state.level,
+    service: SERVICES[state.service].name,
+    extras: EXTRAS.filter((_, i) => state.extras.has(i)).map(x => x.name),
+    day: state.day,
+    time: state.time,
+    name: state.name.trim(),
+    phone: state.phone.trim(),
+  });
+  // Внутри Telegram запись уходит боту, и приложение закрывается.
+  try { if (tg) tg.sendData(data); } catch (e) {}
+  // Если окно не закрылось, значит, приложение открыто просто в браузере.
+  setTimeout(() => {
+    $("toast").textContent = "Чтобы записаться, открой приложение через кнопку в Telegram-боте.";
+  }, 800);
+}
+
+// ---------- Старт ----------
+$("brand").textContent = SHOP.name;
+$("brandSub").textContent = SHOP.about;
+renderContacts();
+
+const firstFree = days().find(x => x.hasFree);
+state.day = firstFree ? firstFree.dayIso : null;
+
+if (tg) {
+  try {
+    tg.ready();
+    tg.expand();
+    tg.setHeaderColor("#121212");
+    tg.setBackgroundColor("#121212");
+    const u = tg.initDataUnsafe && tg.initDataUnsafe.user;
+    if (u && u.first_name) { state.name = u.first_name; $("name").value = u.first_name; }
+  } catch (e) {}
+}
+
+["name", "phone"].forEach(id => {
+  const el = $(id);
+  el.addEventListener("input", () => { state[id] = el.value; renderCta(); });
+  el.addEventListener("focus", () => setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 300));
+});
+$("cta").onclick = submit;
+
+render();
+</script>
+</body>
+</html>
